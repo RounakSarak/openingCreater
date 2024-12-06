@@ -20,16 +20,12 @@ def get_black_moves(moves):
         "moves": 10  # Number of most common moves to display
     }
     try:
-        # Send GET request
         response = requests.get(url, params=params)
         response.raise_for_status()  # Raise exception for HTTP errors
-
-        # Parse the JSON response
         data = response.json()
         moves_data = data.get('moves', [])
         total_games = data.get('white', 0) + data.get('draws', 0) + data.get('black', 0)
         
-        # Filter moves with at least 10% frequency
         valid_moves = []
         for move in moves_data:
             move_percentage = (move['white'] + move['draws'] + move['black']) / total_games
@@ -69,16 +65,8 @@ def build_opening_repertoire(board, moves, depth=3, repertoire=None):
         board.push_uci(black_move)
         moves.append(black_move)
 
-        # Create a new PGN game for the current position
+        # Create a PGN node without headers
         game = chess.pgn.Game()
-        game.headers["Event"] = "Opening Repertoire"
-        game.headers["Site"] = "Generated"
-        game.headers["Date"] = date.today().isoformat()  # Fixed here
-        game.headers["White"] = "Stockfish"
-        game.headers["Black"] = "Lichess Explorer"
-        game.headers["Result"] = "*"  # Placeholder result
-
-        # Add moves to the PGN game
         node = game
         for move in board.move_stack:
             node = node.add_main_variation(move)
@@ -107,10 +95,10 @@ if __name__ == "__main__":
     # Build the repertoire
     repertoire = build_opening_repertoire(board, initial_moves, depth=3)
 
-    # Save repertoire to a PGN file
+    # Save repertoire to a PGN file without headers
     with open("opening_repertoire.pgn", "w") as file:
         for game in repertoire:
-            exporter = chess.pgn.StringExporter(headers=True, variations=True, comments=True)
+            exporter = chess.pgn.StringExporter(headers=False, variations=True, comments=False)
             file.write(game.accept(exporter) + "\n\n")
 
     print("Opening repertoire saved to 'opening_repertoire.pgn'")
