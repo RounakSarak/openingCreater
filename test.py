@@ -1,4 +1,6 @@
 import requests
+import chess
+import chess.pgn
 from stockfish import Stockfish
 
 # URL of the Lichess opening explorer
@@ -7,7 +9,7 @@ url = "https://explorer.lichess.ovh/lichess"
 # Initialize Stockfish
 stockfish = Stockfish(path="C:\\Apps\\stockfish\\stockfish-windows-x86-64-avx2.exe")
 
-# Function to get opening data for Black's responses
+# Function to get Black's moves from Lichess
 def get_black_moves(moves):
     moves_str = ",".join(moves)  # Convert the list of moves to a comma-separated string
     params = {
@@ -40,55 +42,60 @@ def get_black_moves(moves):
         print(f"Missing data in the response: {e}")
         return []
 
-# Function to recursively build the opening repertoire
-def build_opening_repertoire(moves, depth=3, repertoire=None):
-    if repertoire is None:
-        repertoire = []
-
-    # Base case: if the depth is 0, return
+# Recursive function to build opening repertoire
+def build_opening_repertoire(board, moves, depth=3):
     if depth == 0:
-        return repertoire
+        return []
 
-    # White's move from Stockfish
+    repertoire = []
     stockfish.set_position(moves)
     white_move = stockfish.get_best_move()
 
     if not white_move:
-        return repertoire  # Stop if Stockfish fails to generate a move
+        return repertoire
 
-    # Add White's move
+    # Play White's move
+    board.push_uci(white_move)
     moves.append(white_move)
 
-    # Get Black's responses from Lichess
+    # Get Black's moves
     black_moves = get_black_moves(moves)
 
-    # Iterate over Black's valid moves
     for black_move in black_moves:
+        board.push_uci(black_move)
         moves.append(black_move)
 
-        # Recursively build the repertoire for the next depth level
-        build_opening_repertoire(moves, depth - 1, repertoire)
+        # Recursively build the repertoire
+        sub_repertoire = build_opening_repertoire(board, moves, depth - 1)
+        repertoire.extend(sub_repertoire)
 
-        # Convert moves to PGN and add to repertoire
-        stockfish.set_position(moves)
-        pgn = stockfish.get_pgn()
-        repertoire.append(pgn)
+        # Create a PGN game
+        game = chess.pgn.Game()
+        game.from_board(board)
+        repertoire.append(str(game))
 
         # Backtrack
         moves.pop()
+        board.pop()
 
     # Backtrack White's move
     moves.pop()
+    board.pop()
 
     return repertoire
 
-# Start building the opening repertoire from the root position
-initial_moves = []
-repertoire = build_opening_repertoire(initial_moves)
+# Main execution
+if __name__ == "__main__":
+    # Start from an empty chess board
+    board = chess.Board()
+    initial_moves = []
 
-# Save the repertoire to a PGN file
-with open("opening_repertoire.pgn", "w") as file:
-    for line in repertoire:
-        file.write(line + "\n\n")
+    # Build the repertoire
+    repertoire = build_opening_repertoire(board, initial_moves, depth=3)
 
-print("Opening repertoire saved to 'opening_repertoire.pgn'")
+    # Save repertoire to a PGN file
+    with open("opening_repertoire.pgn", "w") as file:
+        for game in repertoire:
+            file.write(game + "\n\n")
+
+    print("Opening repertoire saved to 'opening_repertoire.pgn'")
