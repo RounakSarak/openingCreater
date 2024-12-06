@@ -2,9 +2,8 @@ import requests
 import chess
 import chess.pgn
 from stockfish import Stockfish
-from datetime import date
 
-# URL of the Lichess opening explorer
+# Lichess opening explorer API URL
 url = "https://explorer.lichess.ovh/lichess"
 
 # Initialize Stockfish
@@ -14,56 +13,64 @@ stockfish = Stockfish(path="C:\\Apps\\stockfish\\stockfish-windows-x86-64-avx2.e
 def get_black_moves(moves):
     moves_str = ",".join(moves)  # Convert the list of moves to a comma-separated string
     params = {
-        "play": moves_str,  # Moves in UCI notation
-        "topGames": 0,  # Number of top games to display
-        "recentGames": 0,  # Number of recent games to display
-        "moves": 10  # Number of most common moves to display
+        "play": moves_str,
+        "topGames": 0,
+        "recentGames": 0,
+        "moves": 10  # Maximum moves to fetch
     }
     try:
         response = requests.get(url, params=params)
         response.raise_for_status()  # Raise exception for HTTP errors
         data = response.json()
+        print(f"Lichess response for {moves}: {data}")  # Debugging
         moves_data = data.get('moves', [])
         total_games = data.get('white', 0) + data.get('draws', 0) + data.get('black', 0)
-        
         valid_moves = []
         for move in moves_data:
             move_percentage = (move['white'] + move['draws'] + move['black']) / total_games
-            if move_percentage > 0.1:
+            if move_percentage > 0.1:  # Filter moves based on popularity
                 valid_moves.append(move['uci'])
         return valid_moves
     except requests.RequestException as e:
-        print(f"An error occurred: {e}")
+        print(f"API error for {moves}: {e}")
         return []
     except KeyError as e:
-        print(f"Missing data in the response: {e}")
+        print(f"Missing data in Lichess response for {moves}: {e}")
         return []
 
-# Recursive function to build opening repertoire
+# Recursive function to build the opening repertoire
 def build_opening_repertoire(board, moves, depth=10, repertoire=None):
     if repertoire is None:
         repertoire = []
 
     if depth == 0:
+        print(f"Reached max depth with moves: {moves}")  # Debugging
         return repertoire
 
     # Get White's best move from Stockfish
     stockfish.set_position(moves)
     white_move = stockfish.get_best_move()
-
     if not white_move:
+        print(f"Stockfish failed to find a move for {moves}")  # Debugging
         return repertoire
 
     # Play White's move
     board.push_uci(white_move)
     moves.append(white_move)
+    print(f"White plays: {white_move}")  # Debugging
 
     # Get Black's common responses
     black_moves = get_black_moves(moves)
+    if not black_moves:
+        print(f"No valid Black moves for {moves}")  # Debugging
+        moves.pop()
+        board.pop()
+        return repertoire
 
-    for black_move in black_moves:
+    for black_move in black_moves  # Limit to top 3 Black responses
         board.push_uci(black_move)
         moves.append(black_move)
+        print(f"Black plays: {black_move}")  # Debugging
 
         # Create a PGN node without headers
         game = chess.pgn.Game()
@@ -93,7 +100,7 @@ if __name__ == "__main__":
     initial_moves = []
 
     # Build the repertoire
-    repertoire = build_opening_repertoire(board, initial_moves, depth=3)
+    repertoire = build_opening_repertoire(board, initial_moves, depth=10)
 
     # Save repertoire to a PGN file without headers
     with open("opening_repertoire.pgn", "w") as file:
