@@ -28,6 +28,7 @@ def get_black_moves(moves):
         response.raise_for_status()  # Raise exception for HTTP errors
         data = response.json()
         api_request_count += 1  # Increment API request counter
+        print(api_request_count)
         moves_data = data.get('moves', [])
         total_games = data.get('white', 0) + data.get('draws', 0) + data.get('black', 0)
         valid_moves = []
@@ -107,7 +108,7 @@ if __name__ == "__main__":
     initial_moves = []
 
     # Set the depth for exploration
-    depth = 3  # You can adjust this value
+    depth = 5  # You can adjust this value
 
     # Build the repertoire
     repertoire = build_opening_repertoire(board, initial_moves, depth=depth)
