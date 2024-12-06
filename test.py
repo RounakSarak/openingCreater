@@ -67,7 +67,7 @@ def build_opening_repertoire(board, moves, depth=10, repertoire=None):
         board.pop()
         return repertoire
 
-    for black_move in black_moves  # Limit to top 3 Black responses
+    for black_move in black_moves:  # Limit to top 3 Black responses
         board.push_uci(black_move)
         moves.append(black_move)
         print(f"Black plays: {black_move}")  # Debugging
