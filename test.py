@@ -2,6 +2,7 @@ import requests
 import chess
 import chess.pgn
 from stockfish import Stockfish
+from datetime import date
 
 # URL of the Lichess opening explorer
 url = "https://explorer.lichess.ovh/lichess"
@@ -72,7 +73,7 @@ def build_opening_repertoire(board, moves, depth=3, repertoire=None):
         game = chess.pgn.Game()
         game.headers["Event"] = "Opening Repertoire"
         game.headers["Site"] = "Generated"
-        game.headers["Date"] = chess.pgn.Date.today().isoformat()
+        game.headers["Date"] = date.today().isoformat()  # Fixed here
         game.headers["White"] = "Stockfish"
         game.headers["Black"] = "Lichess Explorer"
         game.headers["Result"] = "*"  # Placeholder result
