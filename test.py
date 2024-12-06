@@ -9,8 +9,13 @@ url = "https://explorer.lichess.ovh/lichess"
 # Initialize Stockfish
 stockfish = Stockfish(path="C:\\Apps\\stockfish\\stockfish-windows-x86-64-avx2.exe")
 
+# Global variables for tracking API requests and total progress
+api_request_count = 0
+total_moves = 0  # Total number of moves explored for progress tracking
+
 # Function to get Black's moves from Lichess
 def get_black_moves(moves):
+    global api_request_count
     moves_str = ",".join(moves)  # Convert the list of moves to a comma-separated string
     params = {
         "play": moves_str,
@@ -22,6 +27,7 @@ def get_black_moves(moves):
         response = requests.get(url, params=params)
         response.raise_for_status()  # Raise exception for HTTP errors
         data = response.json()
+        api_request_count += 1  # Increment API request counter
         moves_data = data.get('moves', [])
         total_games = data.get('white', 0) + data.get('draws', 0) + data.get('black', 0)
         valid_moves = []
@@ -38,42 +44,39 @@ def get_black_moves(moves):
         return []
 
 # Recursive function to build the opening repertoire
-def build_opening_repertoire(board, moves, depth=10, repertoire=None):
+def build_opening_repertoire(board, moves, depth=10, repertoire=None, total_depth=10):
+    global total_moves
     if repertoire is None:
         repertoire = []
 
     if depth == 0:
-        print(f"Reached max depth with moves: {moves}")
         return repertoire
 
     # Get White's best move from Stockfish
     stockfish.set_position(moves)
     white_move = stockfish.get_best_move()
     if not white_move or not board.is_legal(chess.Move.from_uci(white_move)):
-        print(f"Stockfish suggested illegal move: {white_move} for moves {moves}")
         return repertoire
 
     # Play White's move
     board.push_uci(white_move)
     moves.append(white_move)
-    print(f"White plays: {white_move}")
+    total_moves += 1  # Increment total move count
 
     # Get Black's common responses
     black_moves = get_black_moves(moves)
     if not black_moves:
-        print(f"No valid Black moves for {moves}")
         moves.pop()
         board.pop()
         return repertoire
 
     for black_move in black_moves:  # Limit to top 3 Black responses
         if not board.is_legal(chess.Move.from_uci(black_move)):
-            print(f"Skipping illegal Black move: {black_move}")
             continue
 
         board.push_uci(black_move)
         moves.append(black_move)
-        print(f"Black plays: {black_move}")
+        total_moves += 1  # Increment total move count
 
         # Create a PGN node without headers
         game = chess.pgn.Game()
@@ -84,7 +87,7 @@ def build_opening_repertoire(board, moves, depth=10, repertoire=None):
         repertoire.append(game)
 
         # Recursively explore further moves
-        build_opening_repertoire(board, moves, depth - 1, repertoire)
+        build_opening_repertoire(board, moves, depth - 1, repertoire, total_depth)
 
         # Backtrack moves
         moves.pop()
@@ -94,6 +97,10 @@ def build_opening_repertoire(board, moves, depth=10, repertoire=None):
     moves.pop()
     board.pop()
 
+    # Print progress as percentage completed
+    progress = ((total_depth - depth + 1) / total_depth) * 100
+    print(f"API Requests Made: {api_request_count}, Progress: {progress:.2f}%")
+
     return repertoire
 
 # Main execution
@@ -102,8 +109,11 @@ if __name__ == "__main__":
     board = chess.Board()
     initial_moves = []
 
+    # Set the depth for exploration
+    depth = 3  # You can adjust this value
+
     # Build the repertoire
-    repertoire = build_opening_repertoire(board, initial_moves, depth=10)
+    repertoire = build_opening_repertoire(board, initial_moves, depth=depth)
 
     # Save repertoire to a PGN file without headers
     with open("opening_repertoire.pgn", "w") as file:
@@ -111,4 +121,5 @@ if __name__ == "__main__":
             exporter = chess.pgn.StringExporter(headers=False, variations=True, comments=False)
             file.write(game.accept(exporter) + "\n\n")
 
-    print("Opening repertoire saved to 'opening_repertoire.pgn'")
+    print(f"Opening repertoire saved to 'opening_repertoire.pgn'")
+    print(f"Total API requests made: {api_request_count}")
