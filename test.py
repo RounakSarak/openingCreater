@@ -43,11 +43,14 @@ def get_black_moves(moves):
         return []
 
 # Recursive function to build opening repertoire
-def build_opening_repertoire(board, moves, depth=3):
-    if depth == 0:
-        return []
+def build_opening_repertoire(board, moves, depth=3, repertoire=None):
+    if repertoire is None:
+        repertoire = []
 
-    repertoire = []
+    if depth == 0:
+        return repertoire
+
+    # Get White's best move from Stockfish
     stockfish.set_position(moves)
     white_move = stockfish.get_best_move()
 
@@ -58,23 +61,33 @@ def build_opening_repertoire(board, moves, depth=3):
     board.push_uci(white_move)
     moves.append(white_move)
 
-    # Get Black's moves
+    # Get Black's common responses
     black_moves = get_black_moves(moves)
 
     for black_move in black_moves:
         board.push_uci(black_move)
         moves.append(black_move)
 
-        # Recursively build the repertoire
-        sub_repertoire = build_opening_repertoire(board, moves, depth - 1)
-        repertoire.extend(sub_repertoire)
-
-        # Create a PGN game
+        # Create a new PGN game for the current position
         game = chess.pgn.Game()
-        game.from_board(board)
-        repertoire.append(str(game))
+        game.headers["Event"] = "Opening Repertoire"
+        game.headers["Site"] = "Generated"
+        game.headers["Date"] = chess.pgn.Date.today().isoformat()
+        game.headers["White"] = "Stockfish"
+        game.headers["Black"] = "Lichess Explorer"
+        game.headers["Result"] = "*"  # Placeholder result
 
-        # Backtrack
+        # Add moves to the PGN game
+        node = game
+        for move in board.move_stack:
+            node = node.add_main_variation(move)
+
+        repertoire.append(game)
+
+        # Recursively explore further moves
+        build_opening_repertoire(board, moves, depth - 1, repertoire)
+
+        # Backtrack moves
         moves.pop()
         board.pop()
 
@@ -96,6 +109,7 @@ if __name__ == "__main__":
     # Save repertoire to a PGN file
     with open("opening_repertoire.pgn", "w") as file:
         for game in repertoire:
-            file.write(game + "\n\n")
+            exporter = chess.pgn.StringExporter(headers=True, variations=True, comments=True)
+            file.write(game.accept(exporter) + "\n\n")
 
     print("Opening repertoire saved to 'opening_repertoire.pgn'")
