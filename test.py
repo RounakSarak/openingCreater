@@ -2,15 +2,12 @@ import requests
 import chess
 import chess.pgn
 from stockfish import Stockfish
-from concurrent.futures import ThreadPoolExecutor, as_completed
 
 # Lichess opening explorer API URL
 url = "https://explorer.lichess.ovh/lichess"
 
-# Initialize Stockfish with improved settings
+# Initialize Stockfish
 stockfish = Stockfish(path="C:\\Apps\\stockfish\\stockfish-windows-x86-64-avx2.exe")
-stockfish.set_skill_level(20)  # Set skill level for deeper analysis
-stockfish.set_depth(15)  # Increase depth for stronger move selection
 
 # Global variables for tracking API requests and progress
 api_request_count = 0
@@ -31,6 +28,7 @@ def get_black_moves(moves):
         response.raise_for_status()  # Raise exception for HTTP errors
         data = response.json()
         api_request_count += 1  # Increment API request counter
+        print(api_request_count)
         moves_data = data.get('moves', [])
         total_games = data.get('white', 0) + data.get('draws', 0) + data.get('black', 0)
         valid_moves = []
@@ -46,7 +44,7 @@ def get_black_moves(moves):
         print(f"Missing data in Lichess response for {moves}: {e}")
         return []
 
-# Recursive function to build the opening repertoire with parallel processing
+# Recursive function to build the opening repertoire
 def build_opening_repertoire(board, moves, depth=10, repertoire=None):
     global total_moves_explored
 
@@ -74,48 +72,34 @@ def build_opening_repertoire(board, moves, depth=10, repertoire=None):
         board.pop()
         return repertoire
 
-    # Use ThreadPoolExecutor for parallel exploration of Black's moves
-    with ThreadPoolExecutor(max_workers=3) as executor:
-        future_to_move = {executor.submit(explore_black_move, board, moves, black_move, depth - 1): black_move for black_move in black_moves}
-        
-        for future in as_completed(future_to_move):
-            black_move = future_to_move[future]
-            try:
-                child_repertoire = future.result()
-                if child_repertoire:
-                    repertoire.extend(child_repertoire)
-            except Exception as e:
-                print(f"Error processing {black_move}: {e}")
+    for black_move in black_moves:  # Limit to top 3 Black responses
+        if not board.is_legal(chess.Move.from_uci(black_move)):
+            continue
+
+        board.push_uci(black_move)
+        moves.append(black_move)
+        total_moves_explored += 1  # Increment total moves explored
+
+        # Create a PGN node without headers
+        game = chess.pgn.Game()
+        node = game
+        for move in board.move_stack:
+            node = node.add_main_variation(move)
+
+        repertoire.append(game)
+
+        # Recursively explore further moves
+        build_opening_repertoire(board, moves, depth - 1, repertoire)
+
+        # Backtrack moves
+        moves.pop()
+        board.pop()
 
     # Backtrack White's move
     moves.pop()
     board.pop()
 
     return repertoire
-
-# Helper function to explore a single Black move and build the repertoire recursively
-def explore_black_move(board, moves, black_move, depth):
-    global total_moves_explored
-
-    if not board.is_legal(chess.Move.from_uci(black_move)):
-        return None
-
-    board.push_uci(black_move)
-    moves.append(black_move)
-    total_moves_explored += 1  # Increment total moves explored
-
-    # Create a PGN node without headers
-    game = chess.pgn.Game()
-    node = game
-    for move in board.move_stack:
-        node = node.add_main_variation(move)
-
-    # Recurse further
-    child_repertoire = build_opening_repertoire(board, moves, depth=depth)
-    board.pop()
-    moves.pop()
-
-    return child_repertoire
 
 # Main execution
 if __name__ == "__main__":
