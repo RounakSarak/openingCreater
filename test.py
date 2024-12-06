@@ -9,9 +9,9 @@ url = "https://explorer.lichess.ovh/lichess"
 # Initialize Stockfish
 stockfish = Stockfish(path="C:\\Apps\\stockfish\\stockfish-windows-x86-64-avx2.exe")
 
-# Global variables for tracking API requests and total progress
+# Global variables for tracking API requests and progress
 api_request_count = 0
-total_moves = 0  # Total number of moves explored for progress tracking
+total_moves_explored = 0  # Total number of moves explored
 
 # Function to get Black's moves from Lichess
 def get_black_moves(moves):
@@ -44,8 +44,9 @@ def get_black_moves(moves):
         return []
 
 # Recursive function to build the opening repertoire
-def build_opening_repertoire(board, moves, depth=10, repertoire=None, total_depth=10):
-    global total_moves
+def build_opening_repertoire(board, moves, depth=10, repertoire=None):
+    global total_moves_explored
+
     if repertoire is None:
         repertoire = []
 
@@ -61,7 +62,7 @@ def build_opening_repertoire(board, moves, depth=10, repertoire=None, total_dept
     # Play White's move
     board.push_uci(white_move)
     moves.append(white_move)
-    total_moves += 1  # Increment total move count
+    total_moves_explored += 1  # Increment total moves explored
 
     # Get Black's common responses
     black_moves = get_black_moves(moves)
@@ -76,7 +77,7 @@ def build_opening_repertoire(board, moves, depth=10, repertoire=None, total_dept
 
         board.push_uci(black_move)
         moves.append(black_move)
-        total_moves += 1  # Increment total move count
+        total_moves_explored += 1  # Increment total moves explored
 
         # Create a PGN node without headers
         game = chess.pgn.Game()
@@ -87,7 +88,7 @@ def build_opening_repertoire(board, moves, depth=10, repertoire=None, total_dept
         repertoire.append(game)
 
         # Recursively explore further moves
-        build_opening_repertoire(board, moves, depth - 1, repertoire, total_depth)
+        build_opening_repertoire(board, moves, depth - 1, repertoire)
 
         # Backtrack moves
         moves.pop()
@@ -97,9 +98,9 @@ def build_opening_repertoire(board, moves, depth=10, repertoire=None, total_dept
     moves.pop()
     board.pop()
 
-    # Print progress as percentage completed
-    progress = ((total_depth - depth + 1) / total_depth) * 100
-    print(f"API Requests Made: {api_request_count}, Progress: {progress:.2f}%")
+    # Print API request count and progress only after exploring each move
+    progress = (total_moves_explored / (depth * 3)) * 100  # Estimate total moves for a given depth (3 possible moves per position)
+    print(f"API Requests Made: {api_request_count}, Progress: {progress:.2f}%, Last White Move: {white_move}")
 
     return repertoire
 
