@@ -98,10 +98,6 @@ def build_opening_repertoire(board, moves, depth=10, repertoire=None):
     moves.pop()
     board.pop()
 
-    # Print API request count and progress only after exploring each move
-    progress = (total_moves_explored / (depth * 3)) * 100  # Estimate total moves for a given depth (3 possible moves per position)
-    print(f"API Requests Made: {api_request_count}, Progress: {progress:.2f}%, Last White Move: {white_move}")
-
     return repertoire
 
 # Main execution
