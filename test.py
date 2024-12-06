@@ -45,14 +45,11 @@ def get_black_moves(moves):
         return []
 
 # Recursive function to build the opening repertoire
-def build_opening_repertoire(board, moves, depth=10, repertoire=None):
+def build_opening_repertoire(board, moves, depth=1, repertoire=None):
     global total_moves_explored
 
     if repertoire is None:
         repertoire = []
-
-    if depth == 0:
-        return repertoire
 
     # Get White's best move from Stockfish
     stockfish.set_position(moves)
@@ -65,6 +62,19 @@ def build_opening_repertoire(board, moves, depth=10, repertoire=None):
     moves.append(white_move)
     total_moves_explored += 1  # Increment total moves explored
 
+    if depth == 0:
+        # Create a PGN node without headers
+        game = chess.pgn.Game()
+        node = game
+        for move in board.move_stack:
+            node = node.add_main_variation(move)
+        repertoire.append(game)
+
+        # Backtrack White's move
+        moves.pop()
+        board.pop()
+        return repertoire
+
     # Get Black's common responses
     black_moves = get_black_moves(moves)
     if not black_moves:
@@ -72,21 +82,13 @@ def build_opening_repertoire(board, moves, depth=10, repertoire=None):
         board.pop()
         return repertoire
 
-    for black_move in black_moves:  # Limit to top 3 Black responses
+    for black_move in black_moves:  
         if not board.is_legal(chess.Move.from_uci(black_move)):
             continue
 
         board.push_uci(black_move)
         moves.append(black_move)
         total_moves_explored += 1  # Increment total moves explored
-
-        # Create a PGN node without headers
-        game = chess.pgn.Game()
-        node = game
-        for move in board.move_stack:
-            node = node.add_main_variation(move)
-
-        repertoire.append(game)
 
         # Recursively explore further moves
         build_opening_repertoire(board, moves, depth - 1, repertoire)
@@ -108,7 +110,7 @@ if __name__ == "__main__":
     initial_moves = []
 
     # Set the depth for exploration
-    depth = 5  # You can adjust this value
+    depth = 3  # You can adjust this value
 
     # Build the repertoire
     repertoire = build_opening_repertoire(board, initial_moves, depth=depth)
@@ -121,3 +123,4 @@ if __name__ == "__main__":
 
     print(f"Opening repertoire saved to 'opening_repertoire.pgn'")
     print(f"Total API requests made: {api_request_count}")
+    print(f"Total moves explored: {total_moves_explored}")
