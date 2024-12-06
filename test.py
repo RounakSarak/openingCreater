@@ -40,7 +40,7 @@ def get_black_moves(moves):
         return []
 
 # Recursive function to build opening repertoire
-def build_opening_repertoire(board, moves, depth=3, repertoire=None):
+def build_opening_repertoire(board, moves, depth=10, repertoire=None):
     if repertoire is None:
         repertoire = []
 
