@@ -1,1 +1,1 @@
-Opeing repository creater fow white and black
+Opeing repository creater for white and black chess.
