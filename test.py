@@ -9,6 +9,11 @@ url = "https://explorer.lichess.ovh/lichess"
 # Initialize Stockfish
 stockfish = Stockfish(path="C:\\Apps\\stockfish\\stockfish-windows-x86-64-avx2.exe")
 
+stockfish.update_engine_parameters({
+    "Threads": 4,  # Number of CPU threads to use
+    "Hash": 1024,  # Hash size in MB
+    "Skill Level": 20  # Skill level (0-20, 20 being the strongest)
+})
 # Global variables for tracking API requests and progress
 api_request_count = 0
 total_moves_explored = 0  # Total number of moves explored
