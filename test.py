@@ -12,6 +12,13 @@ stockfish = Stockfish(path="C:\\Apps\\stockfish\\stockfish-windows-x86-64-avx2.e
 # Global variables for tracking API requests and progress
 api_request_count = 0
 total_moves_explored = 0  # Total number of moves explored
+depth = 2  # Depth for exploration
+
+def get_my_moves(moves):
+    stockfish.set_position(moves)
+    return stockfish.get_best_move()
+
+
 
 # Function to get Black's moves from Lichess
 def get_black_moves(moves):
@@ -21,7 +28,7 @@ def get_black_moves(moves):
         "play": moves_str,
         "topGames": 0,
         "recentGames": 0,
-        "moves": 10  # Maximum moves to fetch
+        "moves": 5  # Maximum moves to fetch
     }
     try:
         response = requests.get(url, params=params)
@@ -51,15 +58,13 @@ def build_opening_repertoire(board, moves, depth=1, repertoire=None):
     if repertoire is None:
         repertoire = []
 
-    # Get White's best move from Stockfish
-    stockfish.set_position(moves)
-    white_move = stockfish.get_best_move()
-    if not white_move or not board.is_legal(chess.Move.from_uci(white_move)):
+    my_move = get_my_moves(moves)
+    if not my_move or not board.is_legal(chess.Move.from_uci(my_move)):
         return repertoire
 
-    # Play White's move
-    board.push_uci(white_move)
-    moves.append(white_move)
+    # Play my's move
+    board.push_uci(my_move)
+    moves.append(my_move)
     total_moves_explored += 1  # Increment total moves explored
 
     if depth == 0:
@@ -70,7 +75,7 @@ def build_opening_repertoire(board, moves, depth=1, repertoire=None):
             node = node.add_main_variation(move)
         repertoire.append(game)
 
-        # Backtrack White's move
+        # Backtrack my's move
         moves.pop()
         board.pop()
         return repertoire
@@ -97,7 +102,7 @@ def build_opening_repertoire(board, moves, depth=1, repertoire=None):
         moves.pop()
         board.pop()
 
-    # Backtrack White's move
+    # Backtrack my's move
     moves.pop()
     board.pop()
 
@@ -108,9 +113,6 @@ if __name__ == "__main__":
     # Start from an empty chess board
     board = chess.Board()
     initial_moves = []
-
-    # Set the depth for exploration
-    depth = 3  # You can adjust this value
 
     # Build the repertoire
     repertoire = build_opening_repertoire(board, initial_moves, depth=depth)
