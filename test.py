@@ -10,7 +10,7 @@ url = "https://explorer.lichess.ovh/lichess"
 api_request_count = 0
 total_moves_explored = 0  # Total number of moves explored
 depth = 2  # Depth for exploration
-initial_moves = ['e2e4']
+initial_moves = ['e2e4', 'e7e5']  # Initial moves to start the opening repertoire
 # Initialize Stockfish
 stockfish = Stockfish(path="C:\\Apps\\stockfish\\stockfish-windows-x86-64-avx2.exe")
 stockfish.update_engine_parameters({
@@ -123,7 +123,7 @@ if __name__ == "__main__":
 
     # Initialize evalmultiplier based on the number of moves in initial_moves
     evalmultiplier = 1 if len(initial_moves) % 2 == 0 else -1
-    
+    print(evalmultiplier)
     # Build the repertoire
     repertoire = build_opening_repertoire(board, initial_moves, depth=depth)
 
