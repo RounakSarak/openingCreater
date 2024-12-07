@@ -6,27 +6,26 @@ from stockfish import Stockfish
 # Lichess opening explorer API URL
 url = "https://explorer.lichess.ovh/lichess"
 
+# Global variables for tracking API requests and progress
+api_request_count = 0
+total_moves_explored = 0  # Total number of moves explored
+depth = 2  # Depth for exploration
+initial_moves = ['e2e4']
 # Initialize Stockfish
 stockfish = Stockfish(path="C:\\Apps\\stockfish\\stockfish-windows-x86-64-avx2.exe")
-
 stockfish.update_engine_parameters({
     "Threads": 4,  # Number of CPU threads to use
     "Hash": 1024,  # Hash size in MB
     "Skill Level": 20  # Skill level (0-20, 20 being the strongest)
 })
-# Global variables for tracking API requests and progress
-api_request_count = 0
-total_moves_explored = 0  # Total number of moves explored
-depth = 2  # Depth for exploration
 
 def get_my_moves(moves):
     stockfish.set_position(moves)
     return stockfish.get_best_move()
 
 
-
-# Function to get Black's moves from Lichess
-def get_black_moves(moves):
+# Function to get opponent's moves from Lichess
+def get_opponent_moves(moves):
     global api_request_count
     moves_str = ",".join(moves)  # Convert the list of moves to a comma-separated string
     params = {
@@ -85,19 +84,19 @@ def build_opening_repertoire(board, moves, depth=1, repertoire=None):
         board.pop()
         return repertoire
 
-    # Get Black's common responses
-    black_moves = get_black_moves(moves)
-    if not black_moves:
+    # Get opponent's common responses
+    opponent_moves = get_opponent_moves(moves)
+    if not opponent_moves:
         moves.pop()
         board.pop()
         return repertoire
 
-    for black_move in black_moves:  
-        if not board.is_legal(chess.Move.from_uci(black_move)):
+    for opponent_move in opponent_moves:  
+        if not board.is_legal(chess.Move.from_uci(opponent_move)):
             continue
 
-        board.push_uci(black_move)
-        moves.append(black_move)
+        board.push_uci(opponent_move)
+        moves.append(opponent_move)
         total_moves_explored += 1  # Increment total moves explored
 
         # Recursively explore further moves
@@ -117,8 +116,14 @@ def build_opening_repertoire(board, moves, depth=1, repertoire=None):
 if __name__ == "__main__":
     # Start from an empty chess board
     board = chess.Board()
-    initial_moves = []
+    
+    for move in initial_moves:
+        board.push_uci(move)
+        total_moves_explored += 1
 
+    # Initialize evalmultiplier based on the number of moves in initial_moves
+    evalmultiplier = 1 if len(initial_moves) % 2 == 0 else -1
+    
     # Build the repertoire
     repertoire = build_opening_repertoire(board, initial_moves, depth=depth)
 
