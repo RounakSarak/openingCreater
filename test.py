@@ -161,10 +161,10 @@ if __name__ == "__main__":
             file.write(game.accept(exporter) + "\n\n")
 
     with open('requests.json', 'w') as file:
-        json.dump(requests_masters, file)
+        json.dump(requests_masters, file, indent=4)
 
     with open('stockfish_cache.json', 'w') as file:
-        json.dump(stockfish_cache, file)
+        json.dump(stockfish_cache, file, indent=4)
 
     logging.info("Opening repertoire saved to 'opening_repertoire.pgn'")
     logging.info(f"Total API requests made: {api_request_count}")
