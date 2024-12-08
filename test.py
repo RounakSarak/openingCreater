@@ -54,6 +54,7 @@ def get_opponent_moves(moves):
                 return valid_moves
     else:
         try:
+            print(f"Requesting opponent moves for {moves}...")
             response = requests.get(url, params=params)
             response.raise_for_status()  # Raise exception for HTTP errors
             data = response.json()
