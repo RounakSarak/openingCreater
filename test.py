@@ -6,9 +6,6 @@ import json
 import os
 import logging
 
-# Configure logging
-logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
-
 # Lichess opening explorer API URL
 url = "https://explorer.lichess.ovh/masters"
 
@@ -16,7 +13,12 @@ url = "https://explorer.lichess.ovh/masters"
 api_request_count = 0
 total_moves_explored = 0  # Total number of moves explored
 initial_moves = []  # Initial moves to start the opening repertoire
-requiredGames = 1000  # Minimum number of games required for a move to be considered
+requiredGames = 900  # Minimum number of games required for a move to be considered
+
+
+
+# Configure logging
+logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
 
 # Initialize Stockfish
 stockfish = Stockfish(path="C:\\Apps\\stockfish\\stockfish-windows-x86-64-avx2.exe")
