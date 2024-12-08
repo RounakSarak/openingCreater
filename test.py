@@ -46,12 +46,12 @@ def get_opponent_moves(moves):
         for entry in requests_masters:
             if moves_str in entry:
                 print('Using cached data')
-                print(entry[moves_str])
+                # print(entry[moves_str])
                 for move in entry[moves_str]:
                     if move[1] > requiredGames:
                         valid_moves.append(move[0])
                     print(valid_moves)
-                    return valid_moves
+                return valid_moves
     else:
         try:
             response = requests.get(url, params=params)
@@ -159,7 +159,7 @@ if __name__ == "__main__":
 
 
     # Save the requests_masters list to a json file
-    print(requests_masters)
+    # print(requests_masters)
     with open('requests.json', 'w') as file:
         json.dump(requests_masters, file, indent=4)
 
