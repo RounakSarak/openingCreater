@@ -11,7 +11,7 @@ url = "https://explorer.lichess.ovh/masters"
 api_request_count = 0
 total_moves_explored = 0  # Total number of moves explored
 initial_moves = []  # Initial moves to start the opening repertoire
-requiredGames = 50000  # Minimum number of games required for a move to be considered
+requiredGames = 100000  # Minimum number of games required for a move to be considered
 
 # Initialize Stockfish
 stockfish = Stockfish(path="C:\\Apps\\stockfish\\stockfish-windows-x86-64-avx2.exe")
@@ -28,7 +28,7 @@ with open('requests.json', 'r') as file:
 def get_my_moves(moves):
     stockfish.set_position(moves)
     best_move = stockfish.get_best_move()
-    print(f"My move: {best_move}")
+    # print(f"My move: {best_move}")
     return best_move
 
 # Function to get opponent's moves from Lichess
@@ -45,12 +45,12 @@ def get_opponent_moves(moves):
     if any(moves_str in entry for entry in requests_masters):
         for entry in requests_masters:
             if moves_str in entry:
-                print('Using cached data')
+                # print('Using cached data')
                 # print(entry[moves_str])
                 for move in entry[moves_str]:
                     if move[1] > requiredGames:
                         valid_moves.append(move[0])
-                    print(valid_moves)
+                print(f"Opponent moves for {moves}: {valid_moves}")
                 return valid_moves
     else:
         try:
