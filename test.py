@@ -14,7 +14,7 @@ api_request_count = 0
 total_moves_explored = 0  # Total number of moves explored
 initial_moves = []  # Initial moves to start the opening repertoire
 iam = 1  # 1 for white, 0 for black
-requiredGames = 40000  # Minimum number of games required for a move to be considered
+requiredGames = 1000  # Minimum number of games required for a move to be considered
 
 
 
@@ -109,8 +109,6 @@ def build_opening_repertoire(board, moves, repertoire=None):
     my_move = get_my_moves(moves)
     if not my_move or not board.is_legal(chess.Move.from_uci(my_move)):
         logging.warning(f"Stockfish suggested an illegal move: {my_move}")
-        stockfish.get_board_visual()
-        # print(board)
         breakpoint()
         return repertoire
 
@@ -163,10 +161,10 @@ if __name__ == "__main__":
             file.write(game.accept(exporter) + "\n\n")
 
     with open('requests.json', 'w') as file:
-        json.dump(requests_masters, file, indent=4)
+        json.dump(requests_masters, file)
 
     with open('stockfish_cache.json', 'w') as file:
-        json.dump(stockfish_cache, file, indent=4)
+        json.dump(stockfish_cache, file)
 
     logging.info("Opening repertoire saved to 'opening_repertoire.pgn'")
     logging.info(f"Total API requests made: {api_request_count}")
