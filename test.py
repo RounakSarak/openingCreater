@@ -13,7 +13,8 @@ url = "https://explorer.lichess.ovh/masters"
 api_request_count = 0
 total_moves_explored = 0  # Total number of moves explored
 initial_moves = []  # Initial moves to start the opening repertoire
-requiredGames = 100  # Minimum number of games required for a move to be considered
+iam = 1  # 1 for white, 0 for black
+requiredGames = 40000  # Minimum number of games required for a move to be considered
 
 
 
@@ -54,14 +55,10 @@ def get_my_moves(moves):
         logging.debug("Cache hit for Stockfish move.")
         best_move = stockfish_cache[moves_str]
     else:
-        if stockfish.is_move_correct(moves):
-            stockfish.set_position(moves)
-            best_move = stockfish.get_best_move()
-            stockfish_cache[moves_str] = best_move
-            logging.debug(f"Stockfish suggests move: {best_move}")
-        else:
-            logging.error("Invalid moves given to Stockfish.")
-            return None
+        stockfish.set_fen_position(board.fen())
+        best_move = stockfish.get_best_move()
+        stockfish_cache[moves_str] = best_move
+        logging.debug(f"Stockfish suggests move: {best_move}")
     return best_move
 
 def get_opponent_moves(moves):
@@ -112,6 +109,9 @@ def build_opening_repertoire(board, moves, repertoire=None):
     my_move = get_my_moves(moves)
     if not my_move or not board.is_legal(chess.Move.from_uci(my_move)):
         logging.warning(f"Stockfish suggested an illegal move: {my_move}")
+        stockfish.get_board_visual()
+        # print(board)
+        breakpoint()
         return repertoire
 
     board.push_uci(my_move)
