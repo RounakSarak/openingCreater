@@ -7,10 +7,10 @@ import os
 import logging
 
 # Constants
-REQUIRED_GAMES = 10
+REQUIRED_GAMES = 5000
 INITIAL_MOVES = []
 IAM = 0 # 1 for white, 0 for black
-LOOGINGLEVEL = logging.INFO
+LOOGINGLEVEL = logging.DEBUG
 LICHESS_API_URL = "https://explorer.lichess.ovh/masters"
 CACHE_REQUESTS_FILE = "requests.json"
 CACHE_STOCKFISH_FILE = "stockfish_cache.json"
@@ -96,8 +96,9 @@ def fetch_opponent_moves(moves):
         logging.error(f"API request failed for {moves}: {e}")
     return []
 
-def build_opening_repertoire(board, moves, repertoire=None):
+def build_opening_repertoire(board, moves, repertoire=None, ismyturn=True):
     global total_moves_explored
+    print(total_moves_explored)
     if repertoire is None:
         repertoire = []
     if ismyturn:
@@ -109,7 +110,7 @@ def build_opening_repertoire(board, moves, repertoire=None):
         board.push_uci(my_move)
         moves.append(my_move)
         total_moves_explored += 1
-    ismyturn = True
+    
     opponent_moves = fetch_opponent_moves(moves)
     if not opponent_moves:
         game = chess.pgn.Game()
@@ -131,9 +132,9 @@ def build_opening_repertoire(board, moves, repertoire=None):
         build_opening_repertoire(board, moves, repertoire)
         board.pop()
         moves.pop()
-
-    board.pop()
-    moves.pop()
+    if ismyturn:
+        board.pop()
+        moves.pop()
     return repertoire
 
 if __name__ == "__main__":
@@ -147,7 +148,7 @@ if __name__ == "__main__":
     else:
         ismyturn = False
 
-    repertoire = build_opening_repertoire(board, INITIAL_MOVES)
+    repertoire = build_opening_repertoire(board, INITIAL_MOVES, ismyturn=ismyturn)
     
     with open(OUTPUT_FILE, "w") as file:
         for game in repertoire:
