@@ -4,6 +4,10 @@ import chess.pgn
 from stockfish import Stockfish
 import json
 import os
+import logging
+
+# Configure logging
+logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
 
 # Lichess opening explorer API URL
 url = "https://explorer.lichess.ovh/masters"
@@ -12,7 +16,7 @@ url = "https://explorer.lichess.ovh/masters"
 api_request_count = 0
 total_moves_explored = 0  # Total number of moves explored
 initial_moves = []  # Initial moves to start the opening repertoire
-requiredGames = 10000  # Minimum number of games required for a move to be considered
+requiredGames = 8000  # Minimum number of games required for a move to be considered
 
 # Initialize Stockfish
 stockfish = Stockfish(path="C:\\Apps\\stockfish\\stockfish-windows-x86-64-avx2.exe")
@@ -21,44 +25,50 @@ stockfish.update_engine_parameters({
     "Hash": 1024,  # Hash size in MB
     "Skill Level": 20  # Skill level (0-20, 20 being the strongest)
 })
+logging.info("Stockfish initialized.")
 
 # Load the cached requests data from the file
-with open('requests.json', 'r') as file:
-    requests_masters = json.load(file)
+if os.path.exists('requests.json'):
+    with open('requests.json', 'r') as file:
+        requests_masters = json.load(file)
+    logging.info("Loaded cached Lichess API data.")
+else:
+    requests_masters = []
+    logging.info("No cached Lichess API data found.")
 
 # Load the cached Stockfish results from the file
 if os.path.exists('stockfish_cache.json'):
     with open('stockfish_cache.json', 'r') as file:
         stockfish_cache = json.load(file)
+    logging.info("Loaded cached Stockfish data.")
 else:
     stockfish_cache = {}
+    logging.info("No cached Stockfish data found.")
 
 def get_my_moves(moves):
     moves_str = ",".join(moves)
+    logging.debug(f"Fetching my move for: {moves_str}")
     if moves_str in stockfish_cache:
+        logging.debug("Cache hit for Stockfish move.")
         best_move = stockfish_cache[moves_str]
     else:
-        stockfish.set_position()
         if stockfish.is_move_correct(moves):
             stockfish.set_position(moves)
             best_move = stockfish.get_best_move()
             stockfish_cache[moves_str] = best_move
+            logging.debug(f"Stockfish suggests move: {best_move}")
         else:
-            print('wrong move given to stockfish')
+            logging.error("Invalid moves given to Stockfish.")
+            return None
     return best_move
 
-# Function to get opponent's moves from Lichess
 def get_opponent_moves(moves):
     global api_request_count
-    moves_str = ",".join(moves)  # Convert the list of moves to a comma-separated string
-    params = {
-        "play": moves_str,
-        "topGames": 0,
-        "recentGames": 0,
-        "moves": 20  # Maximum moves to fetch
-    }
+    moves_str = ",".join(moves)
+    logging.debug(f"Fetching opponent moves for: {moves_str}")
     valid_moves = []
     if any(moves_str in entry for entry in requests_masters):
+        logging.debug("Cache hit for Lichess API data.")
         for entry in requests_masters:
             if moves_str in entry:
                 for move in entry[moves_str]:
@@ -67,111 +77,95 @@ def get_opponent_moves(moves):
                 return valid_moves
     else:
         try:
-            response = requests.get(url, params=params)
-            response.raise_for_status()  # Raise exception for HTTP errors
+            response = requests.get(url, params={"play": moves_str, "topGames": 0, "recentGames": 0, "moves": 20})
+            response.raise_for_status()
             data = response.json()
-            api_request_count += 1  # Increment API request counter
+            api_request_count += 1
+            logging.debug(f"API request count: {api_request_count}")
+
             moves_data = data.get('moves', [])
             toappend = []
             for move in moves_data:
                 total_games = (move['white'] + move['draws'] + move['black'])
-                if total_games > requiredGames:  # Filter moves based on popularity
+                if total_games > requiredGames:
                     valid_moves.append(move['uci'])
                 toappend.append([move['uci'], total_games])
-            
-            # Save the data to the requests_masters list
+
             requests_masters.append({moves_str: toappend})
             return valid_moves
         except requests.RequestException as e:
-            print(f"API error for {moves}: {e}")
+            logging.error(f"API error for {moves}: {e}")
             return []
         except KeyError as e:
-            print(f"Missing data in Lichess response for {moves}: {e}")
+            logging.error(f"Missing data in Lichess response for {moves}: {e}")
             return []
 
-# Recursive function to build the opening repertoire
 def build_opening_repertoire(board, moves, repertoire=None):
     global total_moves_explored
 
     if repertoire is None:
         repertoire = []
 
+    logging.debug(f"Exploring moves: {moves}")
     my_move = get_my_moves(moves)
     if not my_move or not board.is_legal(chess.Move.from_uci(my_move)):
-        print(f"Stockfish suggested an illegal move: {my_move} for moves {moves}")
+        logging.warning(f"Stockfish suggested an illegal move: {my_move}")
         return repertoire
 
-    # Play my's move
     board.push_uci(my_move)
     moves.append(my_move)
-    total_moves_explored += 1  # Increment total moves explored
+    total_moves_explored += 1
+    logging.debug(f"Pushed move: {my_move}, total moves explored: {total_moves_explored}")
 
-    # Get opponent's common responses
     opponent_moves = get_opponent_moves(moves)
     if not opponent_moves:
-        # Save the game to the repertoire
+        logging.info("No valid opponent moves found, saving the game.")
         game = chess.pgn.Game()
         node = game
         for move in board.move_stack:
             node = node.add_main_variation(move)
         repertoire.append(game)
-
         moves.pop()
         board.pop()
-
         return repertoire
 
-    for opponent_move in opponent_moves:  
+    for opponent_move in opponent_moves:
         if not board.is_legal(chess.Move.from_uci(opponent_move)):
-            print(f"Opponent suggested an illegal move: {opponent_move} for moves {moves}")
+            logging.warning(f"Opponent suggested an illegal move: {opponent_move}")
             continue
 
         board.push_uci(opponent_move)
         moves.append(opponent_move)
-        total_moves_explored += 1  # Increment total moves explored
+        total_moves_explored += 1
 
-        # Recursively explore further moves
         build_opening_repertoire(board, moves, repertoire)
 
-        # Backtrack moves
         moves.pop()
         board.pop()
 
-    # Backtrack my's move
     moves.pop()
     board.pop()
-
     return repertoire
 
-# Main execution
 if __name__ == "__main__":
-    # Start from an empty chess board
     board = chess.Board()
-    
     for move in initial_moves:
         board.push_uci(move)
         total_moves_explored += 1
-
-    # Initialize evalmultiplier based on the number of moves in initial_moves
-    evalmultiplier = 1 if len(initial_moves) % 2 == 0 else -1
-
-    # Build the repertoire
+    
     repertoire = build_opening_repertoire(board, initial_moves)
 
-    # Save repertoire to a PGN file without headers
     with open("opening_repertoire.pgn", "w") as file:
         for game in repertoire:
             exporter = chess.pgn.StringExporter(headers=False, variations=True, comments=False)
             file.write(game.accept(exporter) + "\n\n")
 
-    # Save the requests_masters list to a json file
     with open('requests.json', 'w') as file:
         json.dump(requests_masters, file, indent=4)
 
-    # Save the stockfish_cache to a json file
     with open('stockfish_cache.json', 'w') as file:
         json.dump(stockfish_cache, file, indent=4)
 
-    print(f"Opening repertoire saved to 'opening_repertoire.pgn'")
-    print(f"Total API requests made: {api_request_count}")
-    print(f"Total moves explored: {total_moves_explored}")
+    logging.info("Opening repertoire saved to 'opening_repertoire.pgn'")
+    logging.info(f"Total API requests made: {api_request_count}")
+    logging.info(f"Total moves explored: {total_moves_explored}")
