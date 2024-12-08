@@ -2,6 +2,7 @@ import requests
 import chess
 import chess.pgn
 from stockfish import Stockfish
+import json
 
 # Lichess opening explorer API URL
 url = "https://explorer.lichess.ovh/masters"
@@ -9,8 +10,9 @@ url = "https://explorer.lichess.ovh/masters"
 # Global variables for tracking API requests and progress
 api_request_count = 0
 total_moves_explored = 0  # Total number of moves explored
-depth = 8  # Depth for exploration
 initial_moves = []  # Initial moves to start the opening repertoire
+requiredGames = 100000  # Minimum number of games required for a move to be considered
+
 # Initialize Stockfish
 stockfish = Stockfish(path="C:\\Apps\\stockfish\\stockfish-windows-x86-64-avx2.exe")
 stockfish.update_engine_parameters({
@@ -19,10 +21,13 @@ stockfish.update_engine_parameters({
     "Skill Level": 20  # Skill level (0-20, 20 being the strongest)
 })
 
+# Import the json data from the file
+with open('requests.json', 'r') as file:
+    requests_masters = json.load(file)
+
 def get_my_moves(moves):
     stockfish.set_position(moves)
     return stockfish.get_best_move()
-
 
 # Function to get opponent's moves from Lichess
 def get_opponent_moves(moves):
@@ -32,20 +37,19 @@ def get_opponent_moves(moves):
         "play": moves_str,
         "topGames": 0,
         "recentGames": 0,
-        "moves": 5  # Maximum moves to fetch
+        "moves": 20  # Maximum moves to fetch
     }
+
     try:
         response = requests.get(url, params=params)
         response.raise_for_status()  # Raise exception for HTTP errors
         data = response.json()
         api_request_count += 1  # Increment API request counter
-        print(api_request_count)
         moves_data = data.get('moves', [])
         total_games = data.get('white', 0) + data.get('draws', 0) + data.get('black', 0)
         valid_moves = []
         for move in moves_data:
-            move_percentage = (move['white'] + move['draws'] + move['black']) / total_games
-            if move_percentage > 0.1:  # Filter moves based on popularity
+            if total_games > requiredGames:  # Filter moves based on popularity
                 valid_moves.append(move['uci'])
         return valid_moves
     except requests.RequestException as e:
@@ -56,7 +60,7 @@ def get_opponent_moves(moves):
         return []
 
 # Recursive function to build the opening repertoire
-def build_opening_repertoire(board, moves, depth=1, repertoire=None):
+def build_opening_repertoire(board, moves, repertoire=None):
     global total_moves_explored
 
     if repertoire is None:
@@ -70,19 +74,6 @@ def build_opening_repertoire(board, moves, depth=1, repertoire=None):
     board.push_uci(my_move)
     moves.append(my_move)
     total_moves_explored += 1  # Increment total moves explored
-
-    if depth == 0:
-        # Create a PGN node without headers
-        game = chess.pgn.Game()
-        node = game
-        for move in board.move_stack:
-            node = node.add_main_variation(move)
-        repertoire.append(game)
-
-        # Backtrack my's move
-        moves.pop()
-        board.pop()
-        return repertoire
 
     # Get opponent's common responses
     opponent_moves = get_opponent_moves(moves)
@@ -100,7 +91,7 @@ def build_opening_repertoire(board, moves, depth=1, repertoire=None):
         total_moves_explored += 1  # Increment total moves explored
 
         # Recursively explore further moves
-        build_opening_repertoire(board, moves, depth - 1, repertoire)
+        build_opening_repertoire(board, moves, repertoire)
 
         # Backtrack moves
         moves.pop()
@@ -123,12 +114,9 @@ if __name__ == "__main__":
 
     # Initialize evalmultiplier based on the number of moves in initial_moves
     evalmultiplier = 1 if len(initial_moves) % 2 == 0 else -1
- 
-    expected_requests = sum(3 ** i for i in range(depth))
-    print(f"Exploring {expected_requests} possible continuations at depth {depth}")
-    # breakpoint()
+
     # Build the repertoire
-    repertoire = build_opening_repertoire(board, initial_moves, depth=depth)
+    repertoire = build_opening_repertoire(board, initial_moves)
 
     # Save repertoire to a PGN file without headers
     with open("opening_repertoire.pgn", "w") as file:
