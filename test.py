@@ -19,7 +19,7 @@ requiredGames = 100  # Minimum number of games required for a move to be conside
 
 
 # Configure logging
-logging.basicConfig(level=logging.DEBUG, format='%(levelname)s - %(message)s')
+logging.basicConfig(level=logging.WARNING, format='%(levelname)s - %(message)s')
 
 # Initialize Stockfish
 stockfish = Stockfish(path="C:\\Apps\\stockfish\\stockfish-windows-x86-64-avx2.exe")
