@@ -11,7 +11,7 @@ url = "https://explorer.lichess.ovh/masters"
 api_request_count = 0
 total_moves_explored = 0  # Total number of moves explored
 initial_moves = []  # Initial moves to start the opening repertoire
-requiredGames = 50000  # Minimum number of games required for a move to be considered
+requiredGames = 200000  # Minimum number of games required for a move to be considered
 
 # Initialize Stockfish
 stockfish = Stockfish(path="C:\\Apps\\stockfish\\stockfish-windows-x86-64-avx2.exe")
@@ -41,26 +41,41 @@ def get_opponent_moves(moves):
         "recentGames": 0,
         "moves": 20  # Maximum moves to fetch
     }
-
-    try:
-        response = requests.get(url, params=params)
-        response.raise_for_status()  # Raise exception for HTTP errors
-        data = response.json()
-        api_request_count += 1  # Increment API request counter
-        moves_data = data.get('moves', [])
-        valid_moves = []
-        for move in moves_data:
-            total_games = (move['white'] + move['draws'] + move['black'])
-            if total_games > requiredGames:  # Filter moves based on popularity
-                valid_moves.append(move['uci'])
-        print(f"Opponent moves for {moves}: {valid_moves}")
-        return valid_moves
-    except requests.RequestException as e:
-        print(f"API error for {moves}: {e}")
-        return []
-    except KeyError as e:
-        print(f"Missing data in Lichess response for {moves}: {e}")
-        return []
+    valid_moves = []
+    if any(moves_str in entry for entry in requests_masters):
+        for entry in requests_masters:
+            if moves_str in entry:
+                print('Using cached data')
+                print(entry[moves_str])
+                for move in entry[moves_str]:
+                    if move[1] > requiredGames:
+                        valid_moves.append(move[0])
+                    print(valid_moves)
+                    return valid_moves
+    else:
+        try:
+            response = requests.get(url, params=params)
+            response.raise_for_status()  # Raise exception for HTTP errors
+            data = response.json()
+            api_request_count += 1  # Increment API request counter
+            moves_data = data.get('moves', [])
+            toappend = []
+            for move in moves_data:
+                total_games = (move['white'] + move['draws'] + move['black'])
+                if total_games > requiredGames:  # Filter moves based on popularity
+                    valid_moves.append(move['uci'])
+                toappend.append([move['uci'], total_games])
+            
+            # Save the data to the requests_masters list
+            requests_masters.append({moves_str: toappend})
+            print(f"Opponent moves for {moves}: {valid_moves}")
+            return valid_moves
+        except requests.RequestException as e:
+            print(f"API error for {moves}: {e}")
+            return []
+        except KeyError as e:
+            print(f"Missing data in Lichess response for {moves}: {e}")
+            return []
 
 # Recursive function to build the opening repertoire
 def build_opening_repertoire(board, moves, repertoire=None):
@@ -141,6 +156,12 @@ if __name__ == "__main__":
         for game in repertoire:
             exporter = chess.pgn.StringExporter(headers=False, variations=True, comments=False)
             file.write(game.accept(exporter) + "\n\n")
+
+
+    # Save the requests_masters list to a json file
+    print(requests_masters)
+    with open('requests.json', 'w') as file:
+        json.dump(requests_masters, file, indent=4)
 
     print(f"Opening repertoire saved to 'opening_repertoire.pgn'")
     print(f"Total API requests made: {api_request_count}")
