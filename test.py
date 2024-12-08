@@ -4,13 +4,13 @@ import chess.pgn
 from stockfish import Stockfish
 
 # Lichess opening explorer API URL
-url = "https://explorer.lichess.ovh/lichess"
+url = "https://explorer.lichess.ovh/masters"
 
 # Global variables for tracking API requests and progress
 api_request_count = 0
 total_moves_explored = 0  # Total number of moves explored
-depth = 5  # Depth for exploration
-initial_moves = ['e2e4']  # Initial moves to start the opening repertoire
+depth = 8  # Depth for exploration
+initial_moves = []  # Initial moves to start the opening repertoire
 # Initialize Stockfish
 stockfish = Stockfish(path="C:\\Apps\\stockfish\\stockfish-windows-x86-64-avx2.exe")
 stockfish.update_engine_parameters({
