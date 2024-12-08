@@ -11,7 +11,7 @@ url = "https://explorer.lichess.ovh/masters"
 api_request_count = 0
 total_moves_explored = 0  # Total number of moves explored
 initial_moves = []  # Initial moves to start the opening repertoire
-requiredGames = 100000  # Minimum number of games required for a move to be considered
+requiredGames = 50000  # Minimum number of games required for a move to be considered
 
 # Initialize Stockfish
 stockfish = Stockfish(path="C:\\Apps\\stockfish\\stockfish-windows-x86-64-avx2.exe")
