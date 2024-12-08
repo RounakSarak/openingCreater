@@ -37,12 +37,14 @@ def get_my_moves(moves):
     moves_str = ",".join(moves)
     if moves_str in stockfish_cache:
         best_move = stockfish_cache[moves_str]
-        print(f"Using cached Stockfish move for {moves}: {best_move}")
     else:
-        stockfish.set_position(moves)
-        best_move = stockfish.get_best_move()
-        stockfish_cache[moves_str] = best_move
-        print(f"Stockfish move for {moves}: {best_move}")
+        stockfish.set_position()
+        if stockfish.is_move_correct(moves):
+            stockfish.set_position(moves)
+            best_move = stockfish.get_best_move()
+            stockfish_cache[moves_str] = best_move
+        else:
+            print('wrong move given to stockfish')
     return best_move
 
 # Function to get opponent's moves from Lichess
@@ -62,11 +64,9 @@ def get_opponent_moves(moves):
                 for move in entry[moves_str]:
                     if move[1] > requiredGames:
                         valid_moves.append(move[0])
-                print(f"Opponent moves for {moves}: {valid_moves}")
                 return valid_moves
     else:
         try:
-            print(f"Requesting opponent moves for {moves}...")
             response = requests.get(url, params=params)
             response.raise_for_status()  # Raise exception for HTTP errors
             data = response.json()
@@ -81,7 +81,6 @@ def get_opponent_moves(moves):
             
             # Save the data to the requests_masters list
             requests_masters.append({moves_str: toappend})
-            print(f"Opponent moves for {moves}: {valid_moves}")
             return valid_moves
         except requests.RequestException as e:
             print(f"API error for {moves}: {e}")
@@ -99,13 +98,13 @@ def build_opening_repertoire(board, moves, repertoire=None):
 
     my_move = get_my_moves(moves)
     if not my_move or not board.is_legal(chess.Move.from_uci(my_move)):
+        print(f"Stockfish suggested an illegal move: {my_move} for moves {moves}")
         return repertoire
 
     # Play my's move
     board.push_uci(my_move)
     moves.append(my_move)
     total_moves_explored += 1  # Increment total moves explored
-    print(f"Played my move: {my_move}")
 
     # Get opponent's common responses
     opponent_moves = get_opponent_moves(moves)
@@ -124,12 +123,12 @@ def build_opening_repertoire(board, moves, repertoire=None):
 
     for opponent_move in opponent_moves:  
         if not board.is_legal(chess.Move.from_uci(opponent_move)):
+            print(f"Opponent suggested an illegal move: {opponent_move} for moves {moves}")
             continue
 
         board.push_uci(opponent_move)
         moves.append(opponent_move)
         total_moves_explored += 1  # Increment total moves explored
-        print(f"Played opponent move: {opponent_move}")
 
         # Recursively explore further moves
         build_opening_repertoire(board, moves, repertoire)
@@ -137,12 +136,10 @@ def build_opening_repertoire(board, moves, repertoire=None):
         # Backtrack moves
         moves.pop()
         board.pop()
-        print(f"Backtracked opponent move: {opponent_move}")
 
     # Backtrack my's move
     moves.pop()
     board.pop()
-    print(f"Backtracked my move: {my_move}")
 
     return repertoire
 
