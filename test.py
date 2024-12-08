@@ -3,6 +3,7 @@ import chess
 import chess.pgn
 from stockfish import Stockfish
 import json
+import os
 
 # Lichess opening explorer API URL
 url = "https://explorer.lichess.ovh/masters"
@@ -21,14 +22,27 @@ stockfish.update_engine_parameters({
     "Skill Level": 20  # Skill level (0-20, 20 being the strongest)
 })
 
-# Import the json data from the file
+# Load the cached requests data from the file
 with open('requests.json', 'r') as file:
     requests_masters = json.load(file)
 
+# Load the cached Stockfish results from the file
+if os.path.exists('stockfish_cache.json'):
+    with open('stockfish_cache.json', 'r') as file:
+        stockfish_cache = json.load(file)
+else:
+    stockfish_cache = {}
+
 def get_my_moves(moves):
-    stockfish.set_position(moves)
-    best_move = stockfish.get_best_move()
-    # print(f"My move: {best_move}")
+    moves_str = ",".join(moves)
+    if moves_str in stockfish_cache:
+        best_move = stockfish_cache[moves_str]
+        print(f"Using cached Stockfish move for {moves}: {best_move}")
+    else:
+        stockfish.set_position(moves)
+        best_move = stockfish.get_best_move()
+        stockfish_cache[moves_str] = best_move
+        print(f"Stockfish move for {moves}: {best_move}")
     return best_move
 
 # Function to get opponent's moves from Lichess
@@ -45,8 +59,6 @@ def get_opponent_moves(moves):
     if any(moves_str in entry for entry in requests_masters):
         for entry in requests_masters:
             if moves_str in entry:
-                # print('Using cached data')
-                # print(entry[moves_str])
                 for move in entry[moves_str]:
                     if move[1] > requiredGames:
                         valid_moves.append(move[0])
@@ -98,7 +110,6 @@ def build_opening_repertoire(board, moves, repertoire=None):
     # Get opponent's common responses
     opponent_moves = get_opponent_moves(moves)
     if not opponent_moves:
-
         # Save the game to the repertoire
         game = chess.pgn.Game()
         node = game
@@ -106,10 +117,8 @@ def build_opening_repertoire(board, moves, repertoire=None):
             node = node.add_main_variation(move)
         repertoire.append(game)
 
-
         moves.pop()
         board.pop()
-
 
         return repertoire
 
@@ -158,11 +167,13 @@ if __name__ == "__main__":
             exporter = chess.pgn.StringExporter(headers=False, variations=True, comments=False)
             file.write(game.accept(exporter) + "\n\n")
 
-
     # Save the requests_masters list to a json file
-    # print(requests_masters)
     with open('requests.json', 'w') as file:
         json.dump(requests_masters, file, indent=4)
+
+    # Save the stockfish_cache to a json file
+    with open('stockfish_cache.json', 'w') as file:
+        json.dump(stockfish_cache, file, indent=4)
 
     print(f"Opening repertoire saved to 'opening_repertoire.pgn'")
     print(f"Total API requests made: {api_request_count}")
