@@ -7,20 +7,22 @@ import os
 import logging
 
 # Constants
+REQUIRED_GAMES = 10
+INITIAL_MOVES = []
+IAM = 0 # 1 for white, 0 for black
+LOOGINGLEVEL = logging.INFO
 LICHESS_API_URL = "https://explorer.lichess.ovh/masters"
-STOCKFISH_PATH = "C:\\Apps\\stockfish\\stockfish-windows-x86-64-avx2.exe"
 CACHE_REQUESTS_FILE = "requests.json"
 CACHE_STOCKFISH_FILE = "stockfish_cache.json"
 OUTPUT_FILE = "opening_repertoire.pgn"
-REQUIRED_GAMES = 10
-INITIAL_MOVES = ['e2e4', 'e7e5']
+
 
 # Global Variables
 api_request_count = 0
 total_moves_explored = 0
-
+STOCKFISH_PATH = "C:\\Apps\\stockfish\\stockfish-windows-x86-64-avx2.exe"
 # Configure logging
-logging.basicConfig(level=logging.INFO, format='%(levelname)s - %(message)s')
+logging.basicConfig(level=LOOGINGLEVEL, format='%(levelname)s - %(message)s')
 
 # Initialize Stockfish
 stockfish = Stockfish(path=STOCKFISH_PATH)
@@ -98,16 +100,16 @@ def build_opening_repertoire(board, moves, repertoire=None):
     global total_moves_explored
     if repertoire is None:
         repertoire = []
+    if ismyturn:
+        my_move = get_best_stockfish_move(moves, board)
+        if not my_move or not board.is_legal(chess.Move.from_uci(my_move)):
+            logging.warning(f"Stockfish suggested an illegal or no move: {my_move}")
+            return repertoire
 
-    my_move = get_best_stockfish_move(moves, board)
-    if not my_move or not board.is_legal(chess.Move.from_uci(my_move)):
-        logging.warning(f"Stockfish suggested an illegal or no move: {my_move}")
-        return repertoire
-
-    board.push_uci(my_move)
-    moves.append(my_move)
-    total_moves_explored += 1
-
+        board.push_uci(my_move)
+        moves.append(my_move)
+        total_moves_explored += 1
+    ismyturn = True
     opponent_moves = fetch_opponent_moves(moves)
     if not opponent_moves:
         game = chess.pgn.Game()
@@ -139,9 +141,14 @@ if __name__ == "__main__":
     for move in INITIAL_MOVES:
         board.push_uci(move)
         total_moves_explored += 1
+    
+    if (total_moves_explored % 2) != IAM:
+        ismyturn = True
+    else:
+        ismyturn = False
 
     repertoire = build_opening_repertoire(board, INITIAL_MOVES)
-
+    
     with open(OUTPUT_FILE, "w") as file:
         for game in repertoire:
             exporter = chess.pgn.StringExporter(headers=False, variations=True, comments=False)
