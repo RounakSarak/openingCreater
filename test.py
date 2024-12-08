@@ -12,9 +12,9 @@ url = "https://explorer.lichess.ovh/masters"
 # Global variables for tracking API requests and progress
 api_request_count = 0
 total_moves_explored = 0  # Total number of moves explored
-initial_moves = []  # Initial moves to start the opening repertoire
+initial_moves = ['e2e4','e7e5']  # Initial moves to start the opening repertoire
 iam = 1  # 1 for white, 0 for black
-requiredGames = 500  # Minimum number of games required for a move to be considered
+requiredGames = 100  # Minimum number of games required for a move to be considered
 
 
 
