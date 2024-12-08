@@ -27,7 +27,9 @@ with open('requests.json', 'r') as file:
 
 def get_my_moves(moves):
     stockfish.set_position(moves)
-    return stockfish.get_best_move()
+    best_move = stockfish.get_best_move()
+    print(f"My move: {best_move}")
+    return best_move
 
 # Function to get opponent's moves from Lichess
 def get_opponent_moves(moves):
@@ -46,11 +48,12 @@ def get_opponent_moves(moves):
         data = response.json()
         api_request_count += 1  # Increment API request counter
         moves_data = data.get('moves', [])
-        total_games = data.get('white', 0) + data.get('draws', 0) + data.get('black', 0)
         valid_moves = []
         for move in moves_data:
+            total_games = (move['white'] + move['draws'] + move['black'])
             if total_games > requiredGames:  # Filter moves based on popularity
                 valid_moves.append(move['uci'])
+        print(f"Opponent moves for {moves}: {valid_moves}")
         return valid_moves
     except requests.RequestException as e:
         print(f"API error for {moves}: {e}")
@@ -74,12 +77,24 @@ def build_opening_repertoire(board, moves, repertoire=None):
     board.push_uci(my_move)
     moves.append(my_move)
     total_moves_explored += 1  # Increment total moves explored
+    print(f"Played my move: {my_move}")
 
     # Get opponent's common responses
     opponent_moves = get_opponent_moves(moves)
     if not opponent_moves:
+
+        # Save the game to the repertoire
+        game = chess.pgn.Game()
+        node = game
+        for move in board.move_stack:
+            node = node.add_main_variation(move)
+        repertoire.append(game)
+
+
         moves.pop()
         board.pop()
+
+
         return repertoire
 
     for opponent_move in opponent_moves:  
@@ -89,6 +104,7 @@ def build_opening_repertoire(board, moves, repertoire=None):
         board.push_uci(opponent_move)
         moves.append(opponent_move)
         total_moves_explored += 1  # Increment total moves explored
+        print(f"Played opponent move: {opponent_move}")
 
         # Recursively explore further moves
         build_opening_repertoire(board, moves, repertoire)
@@ -96,10 +112,12 @@ def build_opening_repertoire(board, moves, repertoire=None):
         # Backtrack moves
         moves.pop()
         board.pop()
+        print(f"Backtracked opponent move: {opponent_move}")
 
     # Backtrack my's move
     moves.pop()
     board.pop()
+    print(f"Backtracked my move: {my_move}")
 
     return repertoire
 
