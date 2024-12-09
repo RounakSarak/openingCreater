@@ -8,8 +8,8 @@ import logging
 
 # Constants
 REQUIRED_GAMES = 5000
-INITIAL_MOVES = ['e2e4']
-IAM = 0 # 1 for white, 0 for black
+INITIAL_MOVES = []
+IAM = 1 # 1 for white, 0 for black
 LOOGINGLEVEL = logging.DEBUG
 LICHESS_API_URL = "https://explorer.lichess.ovh/masters"
 CACHE_REQUESTS_FILE = "requests.json"
