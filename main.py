@@ -8,12 +8,13 @@ import logging
 
 # Constants
 REQUIRED_GAMES = 5000
-INITIAL_MOVES = []
+INITIAL_MOVES = ['e2e4']
 IAM = 0 # 1 for white, 0 for black
 LOOGINGLEVEL = logging.DEBUG
 LICHESS_API_URL = "https://explorer.lichess.ovh/masters"
 CACHE_REQUESTS_FILE = "requests.json"
 CACHE_STOCKFISH_FILE = "stockfish_cache.json"
+CACHE_PGNS_FILE = "pgns_cache.json"
 OUTPUT_FILE = "opening_repertoire.pgn"
 
 
@@ -44,6 +45,8 @@ stockfish_cache = load_cache(CACHE_STOCKFISH_FILE)
 logging.info("Loaded Stockfish cache.")
 requests_masters = load_cache(CACHE_REQUESTS_FILE)
 logging.info("Loaded requests cache.")
+pgn_cache = load_cache(CACHE_PGNS_FILE)
+logging.info("Loaded PGNs cache.")
 
 def save_cache(file_name, data):
     with open(file_name, 'w') as file:
@@ -136,21 +139,42 @@ if __name__ == "__main__":
         board.push_uci(move)
         total_moves_explored += 1
     
+   
+
     if (total_moves_explored % 2) != IAM:
         ismyturn = True
     else:
         ismyturn = False
 
-    repertoire = build_opening_repertoire(board, INITIAL_MOVES, ismyturn=ismyturn)
-    
-    with open(OUTPUT_FILE, "w") as file:
-        for game in repertoire:
-            exporter = chess.pgn.StringExporter(headers=False, variations=True, comments=False)
-            file.write(game.accept(exporter) + "\n\n")
+    move_str = ",".join(INITIAL_MOVES)
+    toFind = move_str + str(IAM) + str(REQUIRED_GAMES)
 
+    if toFind in pgn_cache:
+        repertoire = pgn_cache[toFind]
+        logging.info("Found cached PGNs")
+        usedCache = True
+        with open(OUTPUT_FILE, "w") as file:
+            file.write(repertoire)
+
+    else:
+        logging.info("Building opening repertoire...")
+        repertoire = build_opening_repertoire(board, INITIAL_MOVES, ismyturn=ismyturn)
+        usedCache = False
+        with open(OUTPUT_FILE, "w") as file:
+            for game in repertoire:
+                exporter = chess.pgn.StringExporter(headers=False, variations=True, comments=False)
+                file.write(game.accept(exporter) + "\n\n")
+        with open(OUTPUT_FILE, 'r') as file:
+                pgn_data = file.read()
+                pgn_cache[toFind] = pgn_data
+                logging.info("PGNs details saved to cache.")
+   
     save_cache(CACHE_REQUESTS_FILE, requests_masters)
     save_cache(CACHE_STOCKFISH_FILE, stockfish_cache)
+    save_cache(CACHE_PGNS_FILE, pgn_cache)
+
 
     logging.info(f"Opening repertoire saved to '{OUTPUT_FILE}'.")
     logging.info(f"Total API requests made: {api_request_count}")
     logging.info(f"Total moves explored: {total_moves_explored}")
+    logging.info("Done!")
