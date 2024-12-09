@@ -33,15 +33,6 @@ stockfish.update_engine_parameters({
 })
 logging.info("Stockfish initialized.")
 
-# Load cached requests data
-if os.path.exists(CACHE_REQUESTS_FILE):
-    with open(CACHE_REQUESTS_FILE, 'r') as file:
-        requests_masters = json.load(file)
-    logging.info("Loaded cached Lichess API data.")
-else:
-    requests_masters = []
-    logging.info("No cached Lichess API data found.")
-
 # Load cached Stockfish results
 def load_cache(file_name):
     if os.path.exists(file_name):
@@ -51,6 +42,8 @@ def load_cache(file_name):
 
 stockfish_cache = load_cache(CACHE_STOCKFISH_FILE)
 logging.info("Loaded Stockfish cache.")
+requests_masters = load_cache(CACHE_REQUESTS_FILE)
+logging.info("Loaded requests cache.")
 
 def save_cache(file_name, data):
     with open(file_name, 'w') as file:
@@ -63,16 +56,15 @@ def get_best_stockfish_move(moves, board):
 
     stockfish.set_fen_position(board.fen())
     best_move = stockfish.get_best_move()
-    if best_move:
-        stockfish_cache[moves_str] = best_move
+    stockfish_cache[moves_str] = best_move
     return best_move
 
 def fetch_opponent_moves(moves):
     global api_request_count
     moves_str = ",".join(moves)
-    for entry in requests_masters:
-        if moves_str in entry:
-            return [move[0] for move in entry[moves_str] if move[1] >= REQUIRED_GAMES]
+
+    if moves_str in requests_masters:
+        return [move[0] for move in requests_masters[moves_str] if move[1] >= REQUIRED_GAMES]
 
     try:
         response = requests.get(LICHESS_API_URL, params={"play": moves_str, "topGames": 0, "recentGames": 0, "moves": 20})
@@ -89,8 +81,9 @@ def fetch_opponent_moves(moves):
             if total_games >= REQUIRED_GAMES:
                 valid_moves.append(move['uci'])
             cached_data.append([move['uci'], total_games])
-
-        requests_masters.append({moves_str: cached_data})
+        
+        requests_masters[moves_str] = valid_moves
+        
         return valid_moves
     except requests.RequestException as e:
         logging.error(f"API request failed for {moves}: {e}")
