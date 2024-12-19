@@ -193,6 +193,7 @@ if __name__ == "__main__":
                 pgn_data = file.read()
                 pgn_cache[toFind] = pgn_data
                 logging.info("PGNs details saved to cache.")
+        plot_depth(depth_list)
    
     save_cache(CACHE_REQUESTS_FILE, requests_masters)
     save_cache(CACHE_STOCKFISH_FILE, stockfish_cache)
@@ -202,6 +203,3 @@ if __name__ == "__main__":
     logging.info(f"Total API requests made: {api_request_count}")
     logging.info(f"Total moves explored: {total_moves_explored}")
     logging.info("Done!")
-
-    # Plot the depth data
-    plot_depth(depth_list)
