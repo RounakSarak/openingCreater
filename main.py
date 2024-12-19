@@ -88,10 +88,9 @@ def fetch_opponent_moves(moves):
             cached_data.append([move['uci'], total_games])
         
         
-        requests_masters.append({moves_str: cached_data})
-
-        
+        requests_masters[moves_str] = cached_data
         return valid_moves
+    
     except requests.RequestException as e:
         logging.error(f"API request failed for {moves}: {e}")
     return []
