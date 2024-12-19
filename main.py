@@ -67,7 +67,7 @@ def fetch_opponent_moves(moves):
     moves_str = ",".join(moves)
 
     if moves_str in requests_masters:
-        return [move[0] for move in requests_masters[moves_str] if str(move[1]) >= REQUIRED_GAMES]
+        return [move[0] for move in requests_masters[moves_str] if int(move[1]) >= REQUIRED_GAMES]
 
     try:
         response = requests.get(LICHESS_API_URL, params={"play": moves_str, "topGames": 0, "recentGames": 0, "moves": 20})
