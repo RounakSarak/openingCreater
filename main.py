@@ -145,7 +145,7 @@ def print_table(current_depth):
     table = [["Depth", "Number of Moves"]]
     for depth, moves in depth_moves.items():
         if depth == current_depth:
-            table.append([f"\033[1m{depth}\033[0m", f"\033[1m{moves}\033[0m"])
+            table.append([f"\033[92m{depth}\033[0m", f"\033[92m{moves}\033[0m"])
         else:
             table.append([depth, moves])
     table.append(["Total Moves", total_moves_explored])
