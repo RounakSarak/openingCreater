@@ -6,9 +6,10 @@ import json
 import os
 import logging
 import matplotlib.pyplot as plt
+from tqdm import tqdm
 
 # Constants
-REQUIRED_GAMES = 500000
+REQUIRED_GAMES = 5000
 INITIAL_MOVES = ['e2e4','e7e5','g1f3','b8c6','f1b5']
 IAM = 1 # 1 for white, 0 for black
 LOOGINGLEVEL = logging.INFO
@@ -86,7 +87,9 @@ def fetch_opponent_moves(moves):
                 valid_moves.append(move['uci'])
             cached_data.append([move['uci'], total_games])
         
-        requests_masters[moves_str] = valid_moves
+        
+        requests_masters.append({moves_str: cached_data})
+
         
         return valid_moves
     except requests.RequestException as e:
@@ -96,7 +99,7 @@ def fetch_opponent_moves(moves):
 def build_opening_repertoire(board, moves, repertoire=None, ismyturn=True, depth=0):
     global total_moves_explored
     depth_list.append(depth)
-    print("Moves: ", moves)
+    tqdm.write(f"Current depth: {depth}")
     if repertoire is None:
         repertoire = []
     if ismyturn:
@@ -167,7 +170,9 @@ if __name__ == "__main__":
 
     else:
         logging.info("Building opening repertoire...")
-        repertoire = build_opening_repertoire(board, INITIAL_MOVES, ismyturn=ismyturn)
+        with tqdm(total=100, desc="Building Repertoire") as pbar:
+            repertoire = build_opening_repertoire(board, INITIAL_MOVES, ismyturn=ismyturn)
+            pbar.update(100)
         usedCache = False
         with open(OUTPUT_FILE, "w") as file:
             for game in repertoire:
