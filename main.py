@@ -6,10 +6,10 @@ import json
 import os
 import logging
 import matplotlib.pyplot as plt
-from tqdm import tqdm
+from tabulate import tabulate
 
 # Constants
-REQUIRED_GAMES = 5000
+REQUIRED_GAMES = 5000000
 INITIAL_MOVES = ['e2e4','e7e5','g1f3','b8c6','f1b5']
 IAM = 1 # 1 for white, 0 for black
 LOOGINGLEVEL = logging.INFO
@@ -23,6 +23,7 @@ OUTPUT_FILE = "opening_repertoire.pgn"
 api_request_count = 0
 total_moves_explored = 0
 depth_list = []
+depth_moves = {}
 STOCKFISH_PATH = "C:\\Apps\\stockfish\\stockfish-windows-x86-64-avx2.exe"
 # Configure logging
 logging.basicConfig(level=LOOGINGLEVEL, format='%(levelname)s - %(message)s')
@@ -98,7 +99,10 @@ def fetch_opponent_moves(moves):
 def build_opening_repertoire(board, moves, repertoire=None, ismyturn=True, depth=0):
     global total_moves_explored
     depth_list.append(depth)
-    tqdm.write(f"Current depth: {depth}")
+    if depth not in depth_moves:
+        depth_moves[depth] = 0
+    depth_moves[depth] += 1
+    print_table()
     if repertoire is None:
         repertoire = []
     if ismyturn:
@@ -137,6 +141,12 @@ def build_opening_repertoire(board, moves, repertoire=None, ismyturn=True, depth
         moves.pop()
     return repertoire
 
+def print_table():
+    table = [["Depth", "Number of Moves"]]
+    for depth, moves in depth_moves.items():
+        table.append([depth, moves])
+    print(tabulate(table, headers="firstrow", tablefmt="grid"))
+
 def plot_depth(depth_list):
     plt.figure(figsize=(10, 5))
     plt.plot(depth_list, label='Depth')
@@ -169,9 +179,7 @@ if __name__ == "__main__":
 
     else:
         logging.info("Building opening repertoire...")
-        with tqdm(total=100, desc="Building Repertoire") as pbar:
-            repertoire = build_opening_repertoire(board, INITIAL_MOVES, ismyturn=ismyturn)
-            pbar.update(100)
+        repertoire = build_opening_repertoire(board, INITIAL_MOVES, ismyturn=ismyturn)
         usedCache = False
         with open(OUTPUT_FILE, "w") as file:
             for game in repertoire:
