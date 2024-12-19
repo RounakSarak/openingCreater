@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 from tabulate import tabulate
 
 # Constants
-REQUIRED_GAMES = 5000000
+REQUIRED_GAMES = 500000
 INITIAL_MOVES = ['e2e4','e7e5','g1f3','b8c6','f1b5']
 IAM = 1 # 1 for white, 0 for black
 LOOGINGLEVEL = logging.INFO
