@@ -7,11 +7,11 @@ import os
 import logging
 
 # Constants
-REQUIRED_GAMES = 1000
+REQUIRED_GAMES = 500000
 INITIAL_MOVES = ['e2e4','e7e5','g1f3','b8c6','f1b5']
 IAM = 1 # 1 for white, 0 for black
 LOOGINGLEVEL = logging.INFO
-LICHESS_API_URL = "https://explorer.lichess.ovh/masters"
+LICHESS_API_URL = "https://explorer.lichess.ovh/lichess"
 CACHE_REQUESTS_FILE = "requests.json"
 CACHE_STOCKFISH_FILE = "stockfish_cache.json"
 CACHE_PGNS_FILE = "pgns_cache.json"
@@ -67,7 +67,7 @@ def fetch_opponent_moves(moves):
     moves_str = ",".join(moves)
 
     if moves_str in requests_masters:
-        return [move[0] for move in requests_masters[moves_str] if move[1] >= REQUIRED_GAMES]
+        return [move[0] for move in requests_masters[moves_str] if str(move[1]) >= REQUIRED_GAMES]
 
     try:
         response = requests.get(LICHESS_API_URL, params={"play": moves_str, "topGames": 0, "recentGames": 0, "moves": 20})
@@ -94,6 +94,7 @@ def fetch_opponent_moves(moves):
 
 def build_opening_repertoire(board, moves, repertoire=None, ismyturn=True):
     global total_moves_explored
+    print("Moves: ", moves)
     if repertoire is None:
         repertoire = []
     if ismyturn:
