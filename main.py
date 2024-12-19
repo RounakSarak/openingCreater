@@ -102,7 +102,7 @@ def build_opening_repertoire(board, moves, repertoire=None, ismyturn=True, depth
     if depth not in depth_moves:
         depth_moves[depth] = 0
     depth_moves[depth] += 1
-    print_table()
+    print_table(depth)
     if repertoire is None:
         repertoire = []
     if ismyturn:
@@ -141,10 +141,14 @@ def build_opening_repertoire(board, moves, repertoire=None, ismyturn=True, depth
         moves.pop()
     return repertoire
 
-def print_table():
+def print_table(current_depth):
     table = [["Depth", "Number of Moves"]]
     for depth, moves in depth_moves.items():
-        table.append([depth, moves])
+        if depth == current_depth:
+            table.append([f"\033[1m{depth}\033[0m", f"\033[1m{moves}\033[0m"])
+        else:
+            table.append([depth, moves])
+    table.append(["Total Moves", total_moves_explored])
     print(tabulate(table, headers="firstrow", tablefmt="grid"))
 
 def plot_depth(depth_list):
