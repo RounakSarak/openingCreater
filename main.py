@@ -5,6 +5,7 @@ from stockfish import Stockfish
 import json
 import os
 import logging
+import matplotlib.pyplot as plt
 
 # Constants
 REQUIRED_GAMES = 500000
@@ -17,10 +18,10 @@ CACHE_STOCKFISH_FILE = "stockfish_cache.json"
 CACHE_PGNS_FILE = "pgns_cache.json"
 OUTPUT_FILE = "opening_repertoire.pgn"
 
-
 # Global Variables
 api_request_count = 0
 total_moves_explored = 0
+depth_list = []
 STOCKFISH_PATH = "C:\\Apps\\stockfish\\stockfish-windows-x86-64-avx2.exe"
 # Configure logging
 logging.basicConfig(level=LOOGINGLEVEL, format='%(levelname)s - %(message)s')
@@ -92,8 +93,9 @@ def fetch_opponent_moves(moves):
         logging.error(f"API request failed for {moves}: {e}")
     return []
 
-def build_opening_repertoire(board, moves, repertoire=None, ismyturn=True):
+def build_opening_repertoire(board, moves, repertoire=None, ismyturn=True, depth=0):
     global total_moves_explored
+    depth_list.append(depth)
     print("Moves: ", moves)
     if repertoire is None:
         repertoire = []
@@ -125,7 +127,7 @@ def build_opening_repertoire(board, moves, repertoire=None, ismyturn=True):
 
         board.push_uci(opponent_move)
         moves.append(opponent_move)
-        build_opening_repertoire(board, moves, repertoire)
+        build_opening_repertoire(board, moves, repertoire, depth=depth+1)
         board.pop()
         moves.pop()
     if ismyturn:
@@ -133,14 +135,21 @@ def build_opening_repertoire(board, moves, repertoire=None, ismyturn=True):
         moves.pop()
     return repertoire
 
+def plot_depth(depth_list):
+    plt.figure(figsize=(10, 5))
+    plt.plot(depth_list, label='Depth')
+    plt.xlabel('Iterations')
+    plt.ylabel('Depth')
+    plt.title('Depth of Search Tree Over Time')
+    plt.legend()
+    plt.show()
+
 if __name__ == "__main__":
     board = chess.Board()
     for move in INITIAL_MOVES:
         board.push_uci(move)
         total_moves_explored += 1
     
-   
-
     if (total_moves_explored % 2) != IAM:
         ismyturn = True
     else:
@@ -173,8 +182,10 @@ if __name__ == "__main__":
     save_cache(CACHE_STOCKFISH_FILE, stockfish_cache)
     save_cache(CACHE_PGNS_FILE, pgn_cache)
 
-
     logging.info(f"Opening repertoire saved to '{OUTPUT_FILE}'.")
     logging.info(f"Total API requests made: {api_request_count}")
     logging.info(f"Total moves explored: {total_moves_explored}")
     logging.info("Done!")
+
+    # Plot the depth data
+    plot_depth(depth_list)

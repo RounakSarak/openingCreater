@@ -3,13 +3,22 @@
         "a7a6",
         "d7d6",
         "g8f6",
-        "f8c5"
+        "f8c5",
+        "c6d4",
+        "g8e7"
     ],
     "e2e4,e7e5,g1f3,b8c6,f1b5,a7a6,b5a4": [
-        "g8f6"
+        "g8f6",
+        "b7b5"
     ],
     "e2e4,e7e5,g1f3,b8c6,f1b5,a7a6,b5a4,g8f6,e1g1": [],
-    "e2e4,e7e5,g1f3,b8c6,f1b5,d7d6,b1c3": [],
+    "e2e4,e7e5,g1f3,b8c6,f1b5,a7a6,b5a4,b7b5,a4b3": [],
+    "e2e4,e7e5,g1f3,b8c6,f1b5,d7d6,e1g1": [],
     "e2e4,e7e5,g1f3,b8c6,f1b5,g8f6,e1g1": [],
-    "e2e4,e7e5,g1f3,b8c6,f1b5,f8c5,c2c3": []
+    "e2e4,e7e5,g1f3,b8c6,f1b5,f8c5,c2c3": [],
+    "e2e4,e7e5,g1f3,b8c6,f1b5,c6d4,f3d4": [
+        "e5d4"
+    ],
+    "e2e4,e7e5,g1f3,b8c6,f1b5,c6d4,f3d4,e5d4,e1g1": [],
+    "e2e4,e7e5,g1f3,b8c6,f1b5,g8e7,b1c3": []
 }
